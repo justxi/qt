@@ -1,0 +1,41 @@
+diff -Naur a/qtquick3d/src/3rdparty/assimp/src/code/Common/Importer.h b/qtquick3d/src/3rdparty/assimp/src/code/Common/Importer.h
+--- a/qtquick3d/src/3rdparty/assimp/src/code/Common/Importer.h	2021-06-13 07:47:47.123514227 +0200
++++ b/qtquick3d/src/3rdparty/assimp/src/code/Common/Importer.h	2021-06-13 08:16:51.855487153 +0200
+@@ -47,6 +47,7 @@
+ #include <map>
+ #include <vector>
+ #include <string>
++#include <exception>
+ #include <assimp/matrix4x4.h>
+ 
+ struct aiScene;
+@@ -101,7 +102,7 @@
+     std::string mErrorString;
+ 
+     /** Any exception which occurred */
+-    std::exception_ptr mException;
++    std::__exception_ptr::exception_ptr mException;
+ 
+     /** List of integer properties */
+     IntPropertyMap mIntProperties;
+diff -Naur a/qtquick3d/src/3rdparty/assimp/src/include/assimp/Importer.hpp b/qtquick3d/src/3rdparty/assimp/src/include/assimp/Importer.hpp
+--- a/qtquick3d/src/3rdparty/assimp/src/include/assimp/Importer.hpp	2021-06-13 01:03:00.824854493 +0200
++++ b/qtquick3d/src/3rdparty/assimp/src/include/assimp/Importer.hpp	2021-06-13 08:16:29.253487504 +0200
+@@ -56,6 +56,8 @@
+ #error This header requires C++ to be used. Use assimp.h for plain C.
+ #endif // __cplusplus
+ 
++#include <exception>
++
+ // Public ASSIMP data structures
+ #include <assimp/types.h>
+ 
+@@ -502,7 +504,7 @@
+      *
+      * @note The returned value remains valid until one of the
+      * following methods is called: #ReadFile(), #FreeScene(). */
+-    const std::exception_ptr& GetException() const;
++    const std::__exception_ptr::exception_ptr& GetException() const;
+ 
+     // -------------------------------------------------------------------
+     /** Returns the scene loaded by the last successful call to ReadFile()

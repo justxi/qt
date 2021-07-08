@@ -1,0 +1,10 @@
+--- a/qt3d/src/3rdparty/assimp/assimp.cmake	2021-06-12 20:55:49.714021978 +0200
++++ b/qt3d/src/3rdparty/assimp/assimp.cmake	2021-06-12 20:56:02.291020988 +0200
+@@ -257,6 +257,7 @@
+             RAPIDJSON_HAS_STDSTRING=1
+             RAPIDJSON_NOMEMBERITERATORCLASS
+             ASSIMP_BUILD_NO_LIMITBONEWEIGHTS_PROCESS
++            OF=_Z_OF
+         INCLUDE_DIRECTORIES
+             ${assimpDir}
+             ${assimpDir}/..

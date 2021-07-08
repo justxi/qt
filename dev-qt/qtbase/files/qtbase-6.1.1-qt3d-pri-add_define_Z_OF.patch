@@ -1,0 +1,12 @@
+diff -Naur a/qt3d/src/3rdparty/assimp/assimp.pri b/qt3d/src/3rdparty/assimp/assimp.pri
+--- a/qt3d/src/3rdparty/assimp/assimp.pri	2021-06-12 20:00:59.651280967 +0200
++++ b/qt3d/src/3rdparty/assimp/assimp.pri	2021-06-12 20:00:13.807284576 +0200
+@@ -11,6 +11,8 @@
+ else: \
+     QT_PRIVATE += zlib-private
+ 
++DEFINES += "OF=_Z_OF"
++
+ DEFINES += \
+     ASSIMP_BUILD_BOOST_WORKAROUND \
+     ASSIMP_BUILD_NO_3DS_IMPORTER \

@@ -1,0 +1,10 @@
+--- a/qtquick3d/src/plugins/assetimporters/assimp/CMakeLists.txt	2021-06-12 22:06:40.234687382 +0200
++++ b/qtquick3d/src/plugins/assetimporters/assimp/CMakeLists.txt	2021-06-12 22:08:58.097676530 +0200
+@@ -294,6 +294,7 @@
+         RAPIDJSON_HAS_STDSTRING=1
+         RAPIDJSON_NOMEMBERITERATORCLASS
+         ASSIMP_BUILD_NO_LIMITBONEWEIGHTS_PROCESS
++        OF=_Z_OF
+     INCLUDE_DIRECTORIES
+         ../../../3rdparty/assimp
+         ../../../3rdparty/assimp/..
