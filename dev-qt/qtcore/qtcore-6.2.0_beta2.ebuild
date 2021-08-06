@@ -3,13 +3,13 @@
 
 EAPI=7
 
-QT5_MODULE="qtbase"
-inherit linux-info qt5-build
+QT6_MODULE="qtbase"
+inherit linux-info qt6-build
 
 DESCRIPTION="Cross-platform application development framework"
-SLOT=5/$(ver_cut 1-3)
+SLOT=6/$(ver_cut 1-3)
 
-if [[ ${QT5_BUILD_TYPE} == release ]]; then
+if [[ ${QT6_BUILD_TYPE} == release ]]; then
 	KEYWORDS="~amd64 ~arm ~arm64 ~hppa ~ppc ~ppc64 ~sparc ~x86"
 fi
 
@@ -26,7 +26,7 @@ DEPEND="
 "
 RDEPEND="${DEPEND}"
 
-QT5_TARGET_SUBDIRS=(
+QT6_TARGET_SUBDIRS=(
 	src/tools/bootstrap
 	src/tools/moc
 	src/tools/rcc
@@ -35,14 +35,12 @@ QT5_TARGET_SUBDIRS=(
 	doc
 )
 
-QT5_GENTOO_PRIVATE_CONFIG=(
+QT6_GENTOO_PRIVATE_CONFIG=(
 	!:network
 	!:sql
 	!:testlib
 	!:xml
 )
-
-PATCHES=( "${FILESDIR}/${PN}-5.14.1-cmake-macro-backward-compat.patch" ) # bug 703306
 
 pkg_pretend() {
 	use kernel_linux || return
@@ -55,30 +53,31 @@ pkg_pretend() {
 
 src_prepare() {
 	# don't add -O3 to CXXFLAGS, bug 549140
-	sed -i -e '/CONFIG\s*+=/s/optimize_full//' src/corelib/corelib.pro || die
+#	sed -i -e '/CONFIG\s*+=/s/optimize_full//' src/corelib/corelib.pro || die
 
 	# fix missing qt_version_tag symbol w/ LTO, bug 674382
-	sed -i -e 's/^gcc:ltcg/gcc/' src/corelib/global/global.pri || die
+#	sed -i -e 's/^gcc:ltcg/gcc/' src/corelib/global/global.pri || die
 
-	qt5-build_src_prepare
+	qt6-build_src_prepare
 }
 
 src_configure() {
 	local myconf=(
 		$(qt_use icu)
-		$(qt_use !icu iconv)
+# Not supported?	$(qt_use !icu iconv)
 		$(qt_use systemd journald)
+		-- -DQT_AVOID_CMAKE_ARCHIVING_API=ON
 	)
 	use old-kernel && myconf+=(
 		-no-feature-renameat2 # needs Linux 3.16, bug 669994
 		-no-feature-getentropy # needs Linux 3.17, bug 669994
 		-no-feature-statx # needs Linux 4.11, bug 672856
 	)
-	qt5-build_src_configure
+	qt6-build_src_configure
 }
 
 src_install() {
-	qt5-build_src_install
+	qt6-build_src_install
 
 	local flags=(
 		DBUS FREETYPE IMAGEFORMAT_JPEG IMAGEFORMAT_PNG
@@ -86,7 +85,7 @@ src_install() {
 	)
 
 	for flag in ${flags[@]}; do
-		cat >> "${D}"/${QT5_HEADERDIR}/QtCore/qconfig.h <<- _EOF_ || die
+		cat >> "${D}"/${QT6_HEADERDIR}/QtCore/qconfig.h <<- _EOF_ || die
 
 			#if defined(QT_NO_${flag}) && defined(QT_${flag})
 			# undef QT_NO_${flag}

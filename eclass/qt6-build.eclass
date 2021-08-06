@@ -1,70 +1,70 @@
 # Copyright 1999-2021 Gentoo Authors
 # Distributed under the terms of the GNU General Public License v2
 
-# @ECLASS: qt5-build.eclass
+# @ECLASS: qt6-build.eclass
 # @MAINTAINER:
 # qt@gentoo.org
 # @AUTHOR:
 # Davide Pesavento <pesa@gentoo.org>
 # @SUPPORTED_EAPIS: 7
-# @BLURB: Eclass for Qt5 split ebuilds.
+# @BLURB: Eclass for Qt6 split ebuilds.
 # @DESCRIPTION:
-# This eclass contains various functions that are used when building Qt5.
+# This eclass contains various functions that are used when building Qt6.
 # Requires EAPI 7.
 
 if [[ ${CATEGORY} != dev-qt ]]; then
-	die "qt5-build.eclass is only to be used for building Qt 5"
+	die "qt6-build.eclass is only to be used for building Qt 6"
 fi
 
 case ${EAPI} in
 	7)	: ;;
-	*)	die "qt5-build.eclass: unsupported EAPI=${EAPI:-0}" ;;
+	*)	die "qt6-build.eclass: unsupported EAPI=${EAPI:-0}" ;;
 esac
 
-# @ECLASS-VARIABLE: QT5_BUILD_TYPE
+# @ECLASS-VARIABLE: QT6_BUILD_TYPE
 # @DESCRIPTION:
 # Default value is "release".
 # If PV matches "*9999*", this is automatically set to "live".
-QT5_BUILD_TYPE=release
+QT6_BUILD_TYPE=release
 if [[ ${PV} = *9999* ]]; then
-	QT5_BUILD_TYPE=live
+	QT6_BUILD_TYPE=release #live
 fi
-readonly QT5_BUILD_TYPE
+readonly QT6_BUILD_TYPE
 
-# @ECLASS-VARIABLE: QT5_MODULE
+# @ECLASS-VARIABLE: QT6_MODULE
 # @PRE_INHERIT
 # @DESCRIPTION:
 # The upstream name of the module this package belongs to. Used for
 # SRC_URI and EGIT_REPO_URI. Must be set before inheriting the eclass.
-: ${QT5_MODULE:=${PN}}
+: ${QT6_MODULE:=${PN}}
 
-# @ECLASS-VARIABLE: _QT5_P
+# @ECLASS-VARIABLE: _QT6_P
 # @INTERNAL
 # @DESCRIPTION:
 # The upstream package name of the module this package belongs to.
 # Used for SRC_URI and S.
-_QT5_P=${QT5_MODULE}-everywhere-src-${PV}
+_QT6_P=${QT6_MODULE}-everywhere-src-${PV}
 
-# @ECLASS-VARIABLE: QT5_TARGET_SUBDIRS
+# @ECLASS-VARIABLE: QT6_TARGET_SUBDIRS
 # @DEFAULT_UNSET
 # @DESCRIPTION:
 # Array variable containing the source directories that should be built.
 # All paths must be relative to ${S}.
 
-# @ECLASS-VARIABLE: QT5_GENTOO_CONFIG
+# @ECLASS-VARIABLE: QT6_GENTOO_CONFIG
 # @DEFAULT_UNSET
 # @DESCRIPTION:
 # Array of <useflag:feature:macro> triplets that are evaluated in src_install
 # to generate the per-package list of enabled QT_CONFIG features and macro
-# definitions, which are then merged together with all other Qt5 packages
+# definitions, which are then merged together with all other Qt6 packages
 # installed on the system to obtain the global qconfig.{h,pri} files.
 
-# @ECLASS-VARIABLE: QT5_GENTOO_PRIVATE_CONFIG
+# @ECLASS-VARIABLE: QT6_GENTOO_PRIVATE_CONFIG
 # @DEFAULT_UNSET
 # @DESCRIPTION:
 # Array of <useflag:feature> pairs that are evaluated in src_install
 # to generate the per-package list of enabled QT.global_private features,
-# which are then merged together with all other Qt5 packages installed on the
+# which are then merged together with all other Qt6 packages installed on the
 # system to obtain the global qmodule.pri file.
 
 # @ECLASS-VARIABLE: VIRTUALX_REQUIRED
@@ -74,38 +74,54 @@ _QT5_P=${QT5_MODULE}-everywhere-src-${PV}
 # for tests you should proceed with setting VIRTUALX_REQUIRED=test.
 : ${VIRTUALX_REQUIRED:=manual}
 
-inherit estack flag-o-matic toolchain-funcs virtualx
+inherit estack flag-o-matic toolchain-funcs virtualx ninja-utils
 
 HOMEPAGE="https://www.qt.io/"
 LICENSE="|| ( GPL-2 GPL-3 LGPL-3 ) FDL-1.3"
-SLOT=5/$(ver_cut 1-2)
+SLOT=6/$(ver_cut 1-2)
 
 case ${PV} in
-	5.15.9999)
-		# KDE upstream for 5.15 patches
-		HOMEPAGE+=" https://invent.kde.org/qt/qt/"
-		EGIT_BRANCH="kde/5.15"
-		;;
-	*)
-		# official stable release
-		SRC_URI="https://download.qt.io/official_releases/qt/${PV%.*}/${PV}/submodules/${_QT5_P}.tar.xz"
-		S=${WORKDIR}/${_QT5_P}
-		;;
+        6.??.9999)
+                # git stable branch
+                EGIT_BRANCH=${PV%.9999}
+                ;;
+        *_alpha*|*_beta*|*_rc*)
+                # development release
+                MY_P=${QT6_MODULE}-everywhere-src-${PV/_/-}
+                SRC_URI="https://download.qt.io/development_releases/qt/${PV%.*}/${PV/_/-}/submodules/${MY_P}.tar.xz"
+                S=${WORKDIR}/${MY_P}
+                ;;
+        *)
+                # official stable release
+		SRC_URI="https://download.qt.io/official_releases/qt/${PV%.*}/${PV}/submodules/${_QT6_P}.tar.xz"
+                S=${WORKDIR}/${_QT6_P}
+                ;;
 esac
 
-EGIT_REPO_URI=( "https://invent.kde.org/qt/qt/${QT5_MODULE}.git" )
+# use the github
+#SRC_URI="https://github.com/qt/${QT6_MODULE}/archive/refs/tags/v${PV%.*}.0-beta1.tar.gz"
+#S=${WORKDIR}/${_QT6_P}
 
-[[ ${QT5_BUILD_TYPE} == live ]] && inherit git-r3
+## original
+#EGIT_REPO_URI=( "https://invent.kde.org/qt/qt/${QT6_MODULE}.git" )
 
-# @ECLASS-VARIABLE: QT5_BUILD_DIR
+## use the actual upstream repo
+#EGIT_REPO_URI=( "https://github.com/qt/${QT6_MODULE}.git" )
+#EGIT_BRANCH=( "6.2" )
+#S=${WORKDIR}/${QT6_MODULE}
+
+
+[[ ${QT6_BUILD_TYPE} == live ]] && inherit git-r3
+
+# @ECLASS-VARIABLE: QT6_BUILD_DIR
 # @OUTPUT_VARIABLE
 # @DESCRIPTION:
 # Build directory for out-of-source builds.
-: ${QT5_BUILD_DIR:=${S}_build}
+: ${QT6_BUILD_DIR:=${S}_build}
 
 IUSE="debug test"
 
-if [[ ${QT5_BUILD_TYPE} == release ]]; then
+if [[ ${QT6_BUILD_TYPE} == release ]]; then
 	RESTRICT+=" test" # bug 457182
 else
 	RESTRICT+=" !test? ( test )"
@@ -123,10 +139,10 @@ fi
 
 EXPORT_FUNCTIONS src_unpack src_prepare src_configure src_compile src_install src_test pkg_postinst pkg_postrm
 
-# @FUNCTION: qt5-build_src_unpack
+# @FUNCTION: qt6-build_src_unpack
 # @DESCRIPTION:
 # Unpacks the sources.
-qt5-build_src_unpack() {
+qt6-build_src_unpack() {
 	# bug 307861
 	if [[ ${PN} == qtwebengine ]]; then
 		eshopts_push -s extglob
@@ -140,20 +156,20 @@ qt5-build_src_unpack() {
 		eshopts_pop
 	fi
 
-	case ${QT5_BUILD_TYPE} in
+	case ${QT6_BUILD_TYPE} in
 		live)    git-r3_src_unpack ;&
 		release) default ;;
 	esac
 }
 
-# @FUNCTION: qt5-build_src_prepare
+# @FUNCTION: qt6-build_src_prepare
 # @DESCRIPTION:
 # Prepares the environment and patches the sources if necessary.
-qt5-build_src_prepare() {
-	qt5_prepare_env
+qt6-build_src_prepare() {
+	qt6_prepare_env
 
-	if [[ ${QT5_MODULE} == qtbase ]]; then
-		qt5_symlink_tools_to_build_dir
+	if [[ ${QT6_MODULE} == qtbase ]]; then
+		qt6_symlink_tools_to_build_dir
 
 		# Avoid unnecessary qmake recompilations
 		sed -i -e "/Creating qmake/i if [ '!' -e \"\$outpath/bin/qmake\" ]; then" \
@@ -165,63 +181,64 @@ qt5-build_src_prepare() {
 			'QMAKE_CFLAGS=${CFLAGS}' 'QMAKE_CXXFLAGS=${CXXFLAGS}' 'QMAKE_LFLAGS=${LDFLAGS}'&|" \
 			-e 's/\(setBootstrapVariable\s\+\|EXTRA_C\(XX\)\?FLAGS=.*\)QMAKE_C\(XX\)\?FLAGS_\(DEBUG\|RELEASE\).*/:/' \
 			configure || die "sed failed (respect env for qmake build)"
-		sed -i -e '/^CPPFLAGS\s*=/ s/-g //' \
-			qmake/Makefile.unix || die "sed failed (CPPFLAGS for qmake build)"
+# File?		sed -i -e '/^CPPFLAGS\s*=/ s/-g //' \
+#			qmake/Makefile.unix || die "sed failed (CPPFLAGS for qmake build)"
 
 		# Respect CXX in bsymbolic_functions, fvisibility, precomp, and a few other tests
 		sed -i -e "/^QMAKE_CONF_COMPILER=/ s:=.*:=\"$(tc-getCXX)\":" \
 			configure || die "sed failed (QMAKE_CONF_COMPILER)"
 
 		# Respect build variables in configure tests (bug #639494)
-		sed -i -e "s|\"\$outpath/bin/qmake\" \"\$relpathMangled\" -- \"\$@\"|& $(qt5_qmake_args) |" configure || die
+		sed -i -e "s|\"\$outpath/bin/qmake\" \"\$relpathMangled\" -- \"\$@\"|& $(qt6_qmake_args) |" configure || die
 	fi
 
 	default
 }
 
-# @FUNCTION: qt5-build_src_configure
+# @FUNCTION: qt6-build_src_configure
 # @DESCRIPTION:
 # Runs qmake in the target directories. For packages
 # in qtbase, ./configure is also run before qmake.
-qt5-build_src_configure() {
-	if [[ ${QT5_MODULE} == qtbase ]]; then
-		qt5_base_configure
+qt6-build_src_configure() {
+	if [[ ${QT6_MODULE} == qtbase ]]; then
+		qt6_base_configure
 	fi
-	if [[ ${QT5_MODULE} == qttools ]] && [[ -z ${QT5_TARGET_SUBDIRS[@]} ]]; then
-		qt5_tools_configure
+	if [[ ${QT6_MODULE} == qttools ]] && [[ -z ${QT6_TARGET_SUBDIRS[@]} ]]; then
+		qt6_tools_configure
 	fi
 
-	qt5_foreach_target_subdir qt5_qmake
+# TODO?	qt6_foreach_target_subdir qt6_qmake
 }
 
-# @FUNCTION: qt5-build_src_compile
+# @FUNCTION: qt6-build_src_compile
 # @DESCRIPTION:
 # Runs emake in the target directories.
-qt5-build_src_compile() {
-	qt5_foreach_target_subdir emake
+qt6-build_src_compile() {
+#	qt6_foreach_target_subdir emake
+	qt6_foreach_target_subdir ninja -j16
 }
 
-# @FUNCTION: qt5-build_src_test
+# @FUNCTION: qt6-build_src_test
 # @DESCRIPTION:
 # Runs tests in the target directories.
-qt5-build_src_test() {
+qt6-build_src_test() {
 	# disable broken cmake tests (bug 474004)
 	local myqmakeargs=("${myqmakeargs[@]}" -after SUBDIRS-=cmake SUBDIRS-=installed_cmake)
 
-	qt5_foreach_target_subdir qt5_qmake
-	qt5_foreach_target_subdir emake
+	qt6_foreach_target_subdir qt6_qmake
+	qt6_foreach_target_subdir emake
 
 	# create a custom testrunner script that correctly sets
 	# LD_LIBRARY_PATH before executing the given test
-	local testrunner=${QT5_BUILD_DIR}/gentoo-testrunner
+	local testrunner=${QT6_BUILD_DIR}/gentoo-testrunner
 	cat > "${testrunner}" <<-_EOF_ || die
 	#!/bin/sh
-	export LD_LIBRARY_PATH="${QT5_BUILD_DIR}/lib:${QT5_LIBDIR}"
+	export LD_LIBRARY_PATH="${QT6_BUILD_DIR}/lib:${QT6_LIBDIR}"
 	"\$@"
 	_EOF_
 	chmod +x "${testrunner}"
 
-	set -- qt5_foreach_target_subdir emake TESTRUNNER="'${testrunner}'" check
+	set -- qt6_foreach_target_subdir emake TESTRUNNER="'${testrunner}'" check
 	if [[ ${VIRTUALX_REQUIRED} == test ]]; then
 		virtx "$@"
 	else
@@ -229,21 +246,23 @@ qt5-build_src_test() {
 	fi
 }
 
-# @FUNCTION: qt5-build_src_install
+# @FUNCTION: qt6-build_src_install
 # @DESCRIPTION:
 # Runs emake install in the target directories.
-qt5-build_src_install() {
-	qt5_foreach_target_subdir emake INSTALL_ROOT="${D}" install
+qt6-build_src_install() {
+#TODO!	qt6_foreach_target_subdir emake INSTALL_ROOT="${D}" install
+	qt6_foreach_target_subdir_install ninja install
 
 	if [[ ${PN} == qtcore ]]; then
-		pushd "${QT5_BUILD_DIR}" >/dev/null || die
+		pushd "${QT6_BUILD_DIR}" >/dev/null || die
 
-		set -- emake INSTALL_ROOT="${D}" \
-			sub-qmake-qmake-aux-pro-install_subtargets \
-			install_{syncqt,mkspecs}
+# TODO!		set -- emake INSTALL_ROOT="${D}" \
+#		set -- ninja \
+#			sub-qmake-qmake-aux-pro-install_subtargets \
+#			install_{syncqt,mkspecs}
 
-		einfo "Running $*"
-		"$@"
+#		einfo "Running $*"
+#		DESTDIR="${D}" "$@"
 
 		popd >/dev/null || die
 
@@ -251,53 +270,36 @@ qt5-build_src_install() {
 		# so that it's placed under package manager control
 		> "${T}"/gentoo-qconfig.h
 		(
-			insinto "${QT5_HEADERDIR#${EPREFIX}}"/Gentoo
+			insinto "${QT6_HEADERDIR#${EPREFIX}}"/Gentoo
 			doins "${T}"/gentoo-qconfig.h
 		)
 
 		# include gentoo-qconfig.h at the beginning of QtCore/qconfig.h
 		sed -i -e '1i #include <Gentoo/gentoo-qconfig.h>\n' \
-			"${D}${QT5_HEADERDIR}"/QtCore/qconfig.h \
+			"${D}${QT6_HEADERDIR}"/QtCore/qconfig.h \
 			|| die "sed failed (qconfig.h)"
 
-		if ver_test -lt 5.15.2-r3; then
-			# install qtchooser configuration file
-			cat > "${T}/qt5-${CHOST}.conf" <<-_EOF_ || die
-				${QT5_BINDIR}
-				${QT5_LIBDIR}
-			_EOF_
-
-			(
-				insinto /etc/xdg/qtchooser
-				doins "${T}/qt5-${CHOST}.conf"
-			)
-
-			# convenience symlinks
-			dosym qt5-"${CHOST}".conf /etc/xdg/qtchooser/5.conf
-			dosym qt5-"${CHOST}".conf /etc/xdg/qtchooser/qt5.conf
-			dosym qt5.conf /etc/xdg/qtchooser/default.conf
-		fi
 	fi
 
-	qt5_install_module_config
+# TODO!	qt6_install_module_config
 
 	# prune libtool files
 	find "${D}" -name '*.la' -type f -delete || die
 }
 
-# @FUNCTION: qt5-build_pkg_postinst
+# @FUNCTION: qt6-build_pkg_postinst
 # @DESCRIPTION:
 # Regenerate configuration after installation or upgrade/downgrade.
-qt5-build_pkg_postinst() {
-	qt5_regenerate_global_configs
+qt6-build_pkg_postinst() {
+	qt6_regenerate_global_configs
 }
 
-# @FUNCTION: qt5-build_pkg_postrm
+# @FUNCTION: qt6-build_pkg_postrm
 # @DESCRIPTION:
 # Regenerate configuration when a module is completely removed.
-qt5-build_pkg_postrm() {
+qt6-build_pkg_postrm() {
 	if [[ -z ${REPLACED_BY_VERSION} && ${PN} != qtcore ]]; then
-		qt5_regenerate_global_configs
+		qt6_regenerate_global_configs
 	fi
 }
 
@@ -328,13 +330,13 @@ qt_use() {
 # at qmake-time using the qtCompileTest() function. If <flag> is disabled,
 # the compile test is skipped and the dependency is assumed to be unavailable,
 # i.e. the corresponding feature will be disabled. Note that all invocations
-# of this function must happen before calling qt5-build_src_configure.
+# of this function must happen before calling qt6-build_src_configure.
 qt_use_compile_test() {
 	[[ $# -ge 1 ]] || die "${FUNCNAME}() requires at least one argument"
 
 	if ! use "$1"; then
-		mkdir -p "${QT5_BUILD_DIR}" || die
-		echo "CONFIG += done_config_${2:-$1}" >> "${QT5_BUILD_DIR}"/.qmake.cache || die
+		mkdir -p "${QT6_BUILD_DIR}" || die
+		echo "CONFIG += done_config_${2:-$1}" >> "${QT6_BUILD_DIR}"/.qmake.cache || die
 	fi
 }
 
@@ -342,7 +344,7 @@ qt_use_compile_test() {
 # @USAGE: <flag> <config> <files...>
 # @DESCRIPTION:
 # <flag> is the name of a flag in IUSE.
-# <config> is the (lowercase) name of a Qt5 config entry.
+# <config> is the (lowercase) name of a Qt6 config entry.
 # <files...> is a list of one or more qmake project files.
 #
 # This function patches <files> to treat <config> as disabled
@@ -365,7 +367,7 @@ qt_use_disable_config() {
 # @USAGE: <flag> <module> <files...>
 # @DESCRIPTION:
 # <flag> is the name of a flag in IUSE.
-# <module> is the (lowercase) name of a Qt5 module.
+# <module> is the (lowercase) name of a Qt6 module.
 # <files...> is a list of one or more qmake project files.
 #
 # This function patches <files> to treat <module> as not installed
@@ -387,49 +389,49 @@ qt_use_disable_mod() {
 
 ######  Internal functions  ######
 
-# @FUNCTION: qt5_prepare_env
+# @FUNCTION: qt6_prepare_env
 # @INTERNAL
 # @DESCRIPTION:
 # Prepares the environment for building Qt.
-qt5_prepare_env() {
+qt6_prepare_env() {
 	# setup installation directories
 	# note: keep paths in sync with qmake-utils.eclass
-	QT5_PREFIX=${EPREFIX}/usr
-	QT5_HEADERDIR=${QT5_PREFIX}/include/qt5
-	QT5_LIBDIR=${QT5_PREFIX}/$(get_libdir)
-	QT5_ARCHDATADIR=${QT5_PREFIX}/$(get_libdir)/qt5
-	QT5_BINDIR=${QT5_ARCHDATADIR}/bin
-	QT5_PLUGINDIR=${QT5_ARCHDATADIR}/plugins
-	QT5_LIBEXECDIR=${QT5_ARCHDATADIR}/libexec
-	QT5_IMPORTDIR=${QT5_ARCHDATADIR}/imports
-	QT5_QMLDIR=${QT5_ARCHDATADIR}/qml
-	QT5_DATADIR=${QT5_PREFIX}/share/qt5
-	QT5_DOCDIR=${QT5_PREFIX}/share/qt5-doc
-	QT5_TRANSLATIONDIR=${QT5_DATADIR}/translations
-	QT5_EXAMPLESDIR=${QT5_DATADIR}/examples
-	QT5_TESTSDIR=${QT5_DATADIR}/tests
-	QT5_SYSCONFDIR=${EPREFIX}/etc/xdg
-	readonly QT5_PREFIX QT5_HEADERDIR QT5_LIBDIR QT5_ARCHDATADIR \
-		QT5_BINDIR QT5_PLUGINDIR QT5_LIBEXECDIR QT5_IMPORTDIR \
-		QT5_QMLDIR QT5_DATADIR QT5_DOCDIR QT5_TRANSLATIONDIR \
-		QT5_EXAMPLESDIR QT5_TESTSDIR QT5_SYSCONFDIR
+	QT6_PREFIX=${EPREFIX}/usr
+	QT6_HEADERDIR=${QT6_PREFIX}/include/qt6
+	QT6_LIBDIR=${QT6_PREFIX}/$(get_libdir)
+	QT6_ARCHDATADIR=${QT6_PREFIX}/$(get_libdir)/qt6
+	QT6_BINDIR=${QT6_ARCHDATADIR}/bin
+	QT6_PLUGINDIR=${QT6_ARCHDATADIR}/plugins
+	QT6_LIBEXECDIR=${QT6_ARCHDATADIR}/libexec
+	QT6_IMPORTDIR=${QT6_ARCHDATADIR}/imports
+	QT6_QMLDIR=${QT6_ARCHDATADIR}/qml
+	QT6_DATADIR=${QT6_PREFIX}/share/qt6
+	QT6_DOCDIR=${QT6_PREFIX}/share/qt6-doc
+	QT6_TRANSLATIONDIR=${QT6_DATADIR}/translations
+	QT6_EXAMPLESDIR=${QT6_DATADIR}/examples
+	QT6_TESTSDIR=${QT6_DATADIR}/tests
+	QT6_SYSCONFDIR=${EPREFIX}/etc/xdg
+	readonly QT6_PREFIX QT6_HEADERDIR QT6_LIBDIR QT6_ARCHDATADIR \
+		QT6_BINDIR QT6_PLUGINDIR QT6_LIBEXECDIR QT6_IMPORTDIR \
+		QT6_QMLDIR QT6_DATADIR QT6_DOCDIR QT6_TRANSLATIONDIR \
+		QT6_EXAMPLESDIR QT6_TESTSDIR QT6_SYSCONFDIR
 
-	if [[ ${QT5_MODULE} == qtbase ]]; then
+	if [[ ${QT6_MODULE} == qtbase ]]; then
 		# see mkspecs/features/qt_config.prf
-		export QMAKEMODULES="${QT5_BUILD_DIR}/mkspecs/modules:${S}/mkspecs/modules:${QT5_ARCHDATADIR}/mkspecs/modules"
+		export QMAKEMODULES="${QT6_BUILD_DIR}/mkspecs/modules:${S}/mkspecs/modules:${QT6_ARCHDATADIR}/mkspecs/modules"
 	fi
 }
 
-# @FUNCTION: qt5_foreach_target_subdir
+# @FUNCTION: qt6_foreach_target_subdir
 # @INTERNAL
 # @DESCRIPTION:
 # Executes the command given as argument from inside each directory
-# listed in QT5_TARGET_SUBDIRS. Handles autotests subdirs automatically.
-qt5_foreach_target_subdir() {
-	[[ -z ${QT5_TARGET_SUBDIRS[@]} ]] && QT5_TARGET_SUBDIRS=("")
+# listed in QT6_TARGET_SUBDIRS. Handles autotests subdirs automatically.
+qt6_foreach_target_subdir() {
+	[[ -z ${QT6_TARGET_SUBDIRS[@]} ]] && QT6_TARGET_SUBDIRS=("")
 
 	local subdir=
-	for subdir in "${QT5_TARGET_SUBDIRS[@]}"; do
+	for subdir in "${QT6_TARGET_SUBDIRS[@]}"; do
 		if [[ ${EBUILD_PHASE} == test ]]; then
 			subdir=tests/auto${subdir#src}
 			[[ -d ${S}/${subdir} ]] || continue
@@ -438,8 +440,9 @@ qt5_foreach_target_subdir() {
 		local msg="Running $* ${subdir:+in ${subdir}}"
 		einfo "${msg}"
 
-		mkdir -p "${QT5_BUILD_DIR}/${subdir}" || die -n || return $?
-		pushd "${QT5_BUILD_DIR}/${subdir}" >/dev/null || die -n || return $?
+#		mkdir -p "${QT6_BUILD_DIR}/${subdir}" || die -n || return $?
+#		pushd "${QT6_BUILD_DIR}/${subdir}" >/dev/null || die -n || return $?
+		pushd "${QT6_BUILD_DIR}" >/dev/null || die -n || return $?
 
 		"$@" || die -n "${msg} failed" || return $?
 
@@ -447,12 +450,35 @@ qt5_foreach_target_subdir() {
 	done
 }
 
-# @FUNCTION: qt5_symlink_tools_to_build_dir
+qt6_foreach_target_subdir_install() {
+	[[ -z ${QT6_TARGET_SUBDIRS[@]} ]] && QT6_TARGET_SUBDIRS=("")
+
+	local subdir=
+	for subdir in "${QT6_TARGET_SUBDIRS[@]}"; do
+		if [[ ${EBUILD_PHASE} == test ]]; then
+			subdir=tests/auto${subdir#src}
+			[[ -d ${S}/${subdir} ]] || continue
+		fi
+
+		local msg="Running $* ${subdir:+in ${subdir}}"
+		einfo "${msg}"
+
+#		mkdir -p "${QT6_BUILD_DIR}/${subdir}" || die -n || return $?
+#		pushd "${QT6_BUILD_DIR}/${subdir}" >/dev/null || die -n || return $?
+		pushd "${QT6_BUILD_DIR}" >/dev/null || die -n || return $?
+
+		DESTDIR="${D}" "$@" || die -n "${msg} failed" || return $?
+
+		popd >/dev/null || die -n || return $?
+	done
+}
+
+# @FUNCTION: qt6_symlink_tools_to_build_dir
 # @INTERNAL
 # @DESCRIPTION:
-# Symlinks qmake and a few other tools to QT5_BUILD_DIR,
+# Symlinks qmake and a few other tools to QT6_BUILD_DIR,
 # so that they can be used when building other modules.
-qt5_symlink_tools_to_build_dir() {
+qt6_symlink_tools_to_build_dir() {
 	local tool= tools=()
 	if [[ ${PN} != qtcore ]]; then
 		tools+=(qmake moc rcc qlalr)
@@ -460,22 +486,22 @@ qt5_symlink_tools_to_build_dir() {
 		[[ ${PN} != qtwidgets ]] && tools+=(uic)
 	fi
 
-	mkdir -p "${QT5_BUILD_DIR}"/bin || die
-	pushd "${QT5_BUILD_DIR}"/bin >/dev/null || die
+	mkdir -p "${QT6_BUILD_DIR}"/bin || die
+	pushd "${QT6_BUILD_DIR}"/bin >/dev/null || die
 
 	for tool in "${tools[@]}"; do
-		[[ -e ${QT5_BINDIR}/${tool} ]] || continue
-		ln -s "${QT5_BINDIR}/${tool}" . || die "failed to symlink ${tool}"
+		[[ -e ${QT6_BINDIR}/${tool} ]] || continue
+		ln -s "${QT6_BINDIR}/${tool}" . || die "failed to symlink ${tool}"
 	done
 
 	popd >/dev/null || die
 }
 
-# @FUNCTION: qt5_base_configure
+# @FUNCTION: qt6_base_configure
 # @INTERNAL
 # @DESCRIPTION:
 # Runs ./configure for modules belonging to qtbase.
-qt5_base_configure() {
+qt6_base_configure() {
 	# setup toolchain variables used by configure
 	tc-export AR CC CXX OBJDUMP RANLIB STRIP
 	export LD="$(tc-getCXX)"
@@ -486,21 +512,21 @@ qt5_base_configure() {
 	# configure arguments
 	local conf=(
 		# installation paths
-		-prefix "${QT5_PREFIX}"
-		-bindir "${QT5_BINDIR}"
-		-headerdir "${QT5_HEADERDIR}"
-		-libdir "${QT5_LIBDIR}"
-		-archdatadir "${QT5_ARCHDATADIR}"
-		-plugindir "${QT5_PLUGINDIR}"
-		-libexecdir "${QT5_LIBEXECDIR}"
-		-importdir "${QT5_IMPORTDIR}"
-		-qmldir "${QT5_QMLDIR}"
-		-datadir "${QT5_DATADIR}"
-		-docdir "${QT5_DOCDIR}"
-		-translationdir "${QT5_TRANSLATIONDIR}"
-		-sysconfdir "${QT5_SYSCONFDIR}"
-		-examplesdir "${QT5_EXAMPLESDIR}"
-		-testsdir "${QT5_TESTSDIR}"
+		-prefix "${QT6_PREFIX}"
+		-bindir "${QT6_BINDIR}"
+		-headerdir "${QT6_HEADERDIR}"
+		-libdir "${QT6_LIBDIR}"
+		-archdatadir "${QT6_ARCHDATADIR}"
+		-plugindir "${QT6_PLUGINDIR}"
+		-libexecdir "${QT6_LIBEXECDIR}"
+#		-importdir "${QT6_IMPORTDIR}"
+		-qmldir "${QT6_QMLDIR}"
+		-datadir "${QT6_DATADIR}"
+		-docdir "${QT6_DOCDIR}"
+		-translationdir "${QT6_TRANSLATIONDIR}"
+		-sysconfdir "${QT6_SYSCONFDIR}"
+		-examplesdir "${QT6_EXAMPLESDIR}"
+		-testsdir "${QT6_TESTSDIR}"
 
 		# force appropriate compiler
 		$(if use kernel_FreeBSD; then
@@ -542,7 +568,8 @@ qt5_base_configure() {
 
 		# disable all SQL drivers by default, override in qtsql
 		-no-sql-db2 -no-sql-ibase -no-sql-mysql -no-sql-oci -no-sql-odbc
-		-no-sql-psql -no-sql-sqlite -no-sql-sqlite2 -no-sql-tds
+		-no-sql-psql -no-sql-sqlite
+# Not supported?	-no-sql-sqlite2 -no-sql-tds
 
 		# MIPS DSP instruction set extensions
 		$(is-flagq -mno-dsp   && echo -no-mips_dsp)
@@ -581,13 +608,13 @@ qt5_base_configure() {
 		# exclude examples and tests from default build
 		-nomake examples
 		-nomake tests
-		-no-compile-examples
+# Not supported?	-no-compile-examples
 
 		# disable rpath on non-prefix (bugs 380415 and 417169)
 		$(usex prefix '' -no-rpath)
 
 		# print verbose information about each configure test
-		-verbose
+# Not supported?	-verbose
 
 		# disable everything to prevent automagic deps (part 3)
 		-no-cups -no-evdev -no-tslib -no-icu -no-fontconfig -no-dbus
@@ -627,7 +654,7 @@ qt5_base_configure() {
 		-no-libinput
 
 		# respect system proxies by default: it's the most natural
-		# setting, and it'll become the new upstream default in 5.8
+		# setting, and it became the new upstream default in 5.8
 		-system-proxies
 
 		# do not build with -Werror
@@ -636,14 +663,11 @@ qt5_base_configure() {
 		# enable in respective modules to avoid poisoning QT.global_private.enabled_features
 		-no-gui -no-widgets
 
-		# QTBUG-76521, default will change to zstd in Qt6
-		-no-zstd
-
 		# module-specific options
 		"${myconf[@]}"
 	)
 
-	pushd "${QT5_BUILD_DIR}" >/dev/null || die
+	pushd "${QT6_BUILD_DIR}" >/dev/null || die
 
 	einfo "Configuring with: ${conf[@]}"
 	"${S}"/configure "${conf[@]}" || die "configure failed"
@@ -652,18 +676,18 @@ qt5_base_configure() {
 	# config to always be used. bug 599636
 	# ${S}/include does not exist in live sources
 	local basedir="${S}/"
-	[[ ${QT5_BUILD_TYPE} == live ]] && basedir=""
+	[[ ${QT6_BUILD_TYPE} == live ]] && basedir=""
 	cp src/corelib/global/qconfig.h "${basedir}"include/QtCore/ || die
 
 	popd >/dev/null || die
 
 }
 
-# @FUNCTION: qt5_tools_configure
+# @FUNCTION: qt6_tools_configure
 # @INTERNAL
 # @DESCRIPTION:
 # Disables modules other than ${PN} belonging to qttools.
-qt5_tools_configure() {
+qt6_tools_configure() {
 	# configure arguments
 	local qmakeargs=(
 		--
@@ -687,11 +711,11 @@ qt5_tools_configure() {
 	myqmakeargs=( "${qmakeargs[@]}" "${myqmakeargs[@]}" )
 }
 
-# @FUNCTION: qt5_qmake_args
+# @FUNCTION: qt6_qmake_args
 # @INTERNAL
 # @DESCRIPTION:
 # Helper function to get the various toolchain-related variables.
-qt5_qmake_args() {
+qt6_qmake_args() {
 	echo \
 		QMAKE_AR=\"$(tc-getAR)\" \
 		QMAKE_CC=\"$(tc-getCC)\" \
@@ -714,18 +738,18 @@ qt5_qmake_args() {
 		QMAKE_LFLAGS_DEBUG=
 }
 
-# @FUNCTION: qt5_qmake
+# @FUNCTION: qt6_qmake
 # @INTERNAL
 # @DESCRIPTION:
 # Helper function that runs qmake in the current target subdir.
-# Intended to be called by qt5_foreach_target_subdir().
-qt5_qmake() {
-	local projectdir=${PWD/#${QT5_BUILD_DIR}/${S}}
+# Intended to be called by qt6_foreach_target_subdir().
+qt6_qmake() {
+	local projectdir=${PWD/#${QT6_BUILD_DIR}/${S}}
 	local qmakepath=
-	if [[ ${QT5_MODULE} == qtbase ]]; then
-		qmakepath=${QT5_BUILD_DIR}/bin
+	if [[ ${QT6_MODULE} == qtbase ]]; then
+		qmakepath=${QT6_BUILD_DIR}/bin
 	else
-		qmakepath=${QT5_BINDIR}
+		qmakepath=${QT6_BINDIR}
 	fi
 
 	"${qmakepath}"/qmake \
@@ -755,12 +779,12 @@ qt5_qmake() {
 		|| die "qmake failed (${projectdir#${S}/})"
 }
 
-# @FUNCTION: qt5_install_module_config
+# @FUNCTION: qt6_install_module_config
 # @INTERNAL
 # @DESCRIPTION:
 # Creates and installs gentoo-specific ${PN}-qconfig.{h,pri} and
 # ${PN}-qmodule.pri files.
-qt5_install_module_config() {
+qt6_install_module_config() {
 	local x qconfig_add= qconfig_remove= qprivateconfig_add= qprivateconfig_remove=
 
 	> "${T}"/${PN}-qconfig.h
@@ -768,7 +792,7 @@ qt5_install_module_config() {
 	> "${T}"/${PN}-qmodule.pri
 
 	# generate qconfig_{add,remove} and ${PN}-qconfig.h
-	for x in "${QT5_GENTOO_CONFIG[@]}"; do
+	for x in "${QT6_GENTOO_CONFIG[@]}"; do
 		local flag=${x%%:*}
 		x=${x#${flag}:}
 		local feature=${x%%:*}
@@ -787,7 +811,7 @@ qt5_install_module_config() {
 
 	# install ${PN}-qconfig.h
 	[[ -s ${T}/${PN}-qconfig.h ]] && (
-		insinto "${QT5_HEADERDIR#${EPREFIX}}"/Gentoo
+		insinto "${QT6_HEADERDIR#${EPREFIX}}"/Gentoo
 		doins "${T}"/${PN}-qconfig.h
 	)
 
@@ -795,12 +819,12 @@ qt5_install_module_config() {
 	[[ -n ${qconfig_add} ]] && echo "QCONFIG_ADD=${qconfig_add}" >> "${T}"/${PN}-qconfig.pri
 	[[ -n ${qconfig_remove} ]] && echo "QCONFIG_REMOVE=${qconfig_remove}" >> "${T}"/${PN}-qconfig.pri
 	[[ -s ${T}/${PN}-qconfig.pri ]] && (
-		insinto "${QT5_ARCHDATADIR#${EPREFIX}}"/mkspecs/gentoo
+		insinto "${QT6_ARCHDATADIR#${EPREFIX}}"/mkspecs/gentoo
 		doins "${T}"/${PN}-qconfig.pri
 	)
 
 	# generate qprivateconfig
-	for x in "${QT5_GENTOO_PRIVATE_CONFIG[@]}"; do
+	for x in "${QT6_GENTOO_PRIVATE_CONFIG[@]}"; do
 		local flag=${x%%:*}
 		x=${x#${flag}:}
 		local feature=${x%%:*}
@@ -817,39 +841,39 @@ qt5_install_module_config() {
 	[[ -n ${qprivateconfig_add} ]] && echo "QT.global_private.enabled_features = ${qprivateconfig_add}" >> "${T}"/${PN}-qmodule.pri
 	[[ -n ${qprivateconfig_remove} ]] && echo "QT.global_private.disabled_features = ${qprivateconfig_remove}" >> "${T}"/${PN}-qmodule.pri
 	[[ -s ${T}/${PN}-qmodule.pri ]] && (
-		insinto "${QT5_ARCHDATADIR#${EPREFIX}}"/mkspecs/gentoo
+		insinto "${QT6_ARCHDATADIR#${EPREFIX}}"/mkspecs/gentoo
 		doins "${T}"/${PN}-qmodule.pri
 	)
 
 	# install the original {qconfig,qmodule}.pri from qtcore
 	[[ ${PN} == qtcore ]] && (
-		insinto "${QT5_ARCHDATADIR#${EPREFIX}}"/mkspecs/gentoo
-		newins "${D}${QT5_ARCHDATADIR}"/mkspecs/qconfig.pri qconfig-qtcore.pri
-		newins "${D}${QT5_ARCHDATADIR}"/mkspecs/qmodule.pri qmodule-qtcore.pri
+		insinto "${QT6_ARCHDATADIR#${EPREFIX}}"/mkspecs/gentoo
+		newins "${D}${QT6_ARCHDATADIR}"/mkspecs/qconfig.pri qconfig-qtcore.pri
+		newins "${D}${QT6_ARCHDATADIR}"/mkspecs/qmodule.pri qmodule-qtcore.pri
 	)
 }
 
-# @FUNCTION: qt5_regenerate_global_configs
+# @FUNCTION: qt6_regenerate_global_configs
 # @INTERNAL
 # @DESCRIPTION:
 # Generates Gentoo-specific qconfig.{h,pri} and qmodule.pri according to the
 # build configuration.
 # Don't call die here because dying in pkg_post{inst,rm} only makes things worse.
-qt5_regenerate_global_configs() {
+qt6_regenerate_global_configs() {
 	einfo "Regenerating gentoo-qconfig.h"
 
-	find "${ROOT}${QT5_HEADERDIR}"/Gentoo \
+	find "${ROOT}${QT6_HEADERDIR}"/Gentoo \
 		-name '*-qconfig.h' -a \! -name 'gentoo-qconfig.h' -type f \
 		-execdir cat '{}' + | sort -u > "${T}"/gentoo-qconfig.h
 
 	[[ -s ${T}/gentoo-qconfig.h ]] || ewarn "Generated gentoo-qconfig.h is empty"
-	cp "${T}"/gentoo-qconfig.h "${ROOT}${QT5_HEADERDIR}"/Gentoo/gentoo-qconfig.h \
+	cp "${T}"/gentoo-qconfig.h "${ROOT}${QT6_HEADERDIR}"/Gentoo/gentoo-qconfig.h \
 		|| eerror "Failed to install new gentoo-qconfig.h"
 
 	einfo "Updating QT_CONFIG in qconfig.pri"
 
-	local qconfig_pri=${ROOT}${QT5_ARCHDATADIR}/mkspecs/qconfig.pri
-	local qconfig_pri_orig=${ROOT}${QT5_ARCHDATADIR}/mkspecs/gentoo/qconfig-qtcore.pri
+	local qconfig_pri=${ROOT}${QT6_ARCHDATADIR}/mkspecs/qconfig.pri
+	local qconfig_pri_orig=${ROOT}${QT6_ARCHDATADIR}/mkspecs/gentoo/qconfig-qtcore.pri
 	if [[ -f ${qconfig_pri} ]]; then
 		local x qconfig_add= qconfig_remove=
 		local qt_config new_qt_config=
@@ -862,7 +886,7 @@ qt5_regenerate_global_configs() {
 		# generate list of QT_CONFIG entries from the existing list,
 		# appending QCONFIG_ADD and excluding QCONFIG_REMOVE
 		eshopts_push -s nullglob
-		for x in "${ROOT}${QT5_ARCHDATADIR}"/mkspecs/gentoo/*-qconfig.pri; do
+		for x in "${ROOT}${QT6_ARCHDATADIR}"/mkspecs/gentoo/*-qconfig.pri; do
 			qconfig_add+=" $(sed -n 's/^QCONFIG_ADD=\s*//p' "${x}")"
 			qconfig_remove+=" $(sed -n 's/^QCONFIG_REMOVE=\s*//p' "${x}")"
 		done
@@ -882,8 +906,8 @@ qt5_regenerate_global_configs() {
 
 	einfo "Updating QT.global_private in qmodule.pri"
 
-	local qmodule_pri=${ROOT}${QT5_ARCHDATADIR}/mkspecs/qmodule.pri
-	local qmodule_pri_orig=${ROOT}${QT5_ARCHDATADIR}/mkspecs/gentoo/qmodule-qtcore.pri
+	local qmodule_pri=${ROOT}${QT6_ARCHDATADIR}/mkspecs/qmodule.pri
+	local qmodule_pri_orig=${ROOT}${QT6_ARCHDATADIR}/mkspecs/gentoo/qmodule-qtcore.pri
 	if [[ -f ${qmodule_pri} && -f ${qmodule_pri_orig} ]]; then
 		local x
 		local qprivateconfig_enabled= qprivateconfig_disabled=
@@ -894,7 +918,7 @@ qt5_regenerate_global_configs() {
 		qprivateconfig_orig_enabled="$(sed -n 's/^QT.global_private.enabled_features\s=\s*//p' "${qmodule_pri_orig}")"
 		qprivateconfig_orig_disabled="$(sed -n 's/^QT.global_private.disabled_features\s=\s*//p' "${qmodule_pri_orig}")"
 		eshopts_push -s nullglob
-		for x in "${ROOT}${QT5_ARCHDATADIR}"/mkspecs/gentoo/*-qmodule.pri; do
+		for x in "${ROOT}${QT6_ARCHDATADIR}"/mkspecs/gentoo/*-qmodule.pri; do
 			qprivateconfig_enabled+=" $(sed -n 's/^QT.global_private.enabled_features\s=\s*//p' "${x}")"
 			qprivateconfig_disabled+=" $(sed -n 's/^QT.global_private.disabled_features\s=\s*//p' "${x}")"
 		done
